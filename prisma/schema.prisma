@@ -1,0 +1,115 @@
+// Prisma schema for PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role
+  magazines Magazine[] @relation("PublisherMagazines")
+  subscriptions Subscription[]
+  comments   Comment[]
+  activityLogs ActivityLog[]
+  articlesAuthored Article[] @relation("UserArticles")
+}
+
+enum Role {
+  SUBSCRIBER
+  PUBLISHER
+  ADMIN
+}
+
+model Magazine {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String
+  publisher   User      @relation("PublisherMagazines", fields: [publisherId], references: [id])
+  publisherId Int
+  articles    Article[]
+  subscriptions Subscription[]
+}
+
+model Article {
+  id         Int      @id @default(autoincrement())
+  title      String
+  content    String
+  magazine   Magazine @relation(fields: [magazineId], references: [id])
+  magazineId Int
+  author     User     @relation("UserArticles", fields: [authorId], references: [id])
+  authorId   Int
+  comments   Comment[]
+}
+
+model Subscription {
+  id         Int      @id @default(autoincrement())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+  magazine   Magazine @relation(fields: [magazineId], references: [id])
+  magazineId Int
+  type       SubscriptionType
+  status     SubscriptionStatus
+  startDate  DateTime
+  endDate    DateTime
+  payments   Payment[]
+}
+
+enum SubscriptionType {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  PENDING
+}
+
+model Payment {
+  id             Int      @id @default(autoincrement())
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  subscriptionId Int
+  amount         Float
+  date           DateTime
+  status         PaymentStatus
+}
+
+enum PaymentStatus {
+  PAID
+  FAILED
+  PENDING
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  article   Article  @relation(fields: [articleId], references: [id])
+  articleId Int
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  content   String
+  status    CommentStatus
+  createdAt DateTime @default(now())
+}
+
+enum CommentStatus {
+  ACTIVE
+  BLOCKED
+}
+
+model ActivityLog {
+  id         Int      @id @default(autoincrement())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+  action     String
+  entityType String
+  entityId   Int
+  timestamp  DateTime @default(now())
+}
